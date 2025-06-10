@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}Set Criteria Priorities - Resume Screener Premium{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Set Evaluation Criteria Priorities</h1>
+        <p class="lead">
+            Select and customize the importance of each evaluation criterion to match your specific needs with our premium analysis.
+        </p>
+    </div>
+</div>
+
+<div class="card card-premium">
+    <div class="card-header">
+        <div class="steps">
+            <div class="step completed">
+                <div class="step-number">1</div>
+                <div class="step-title">Job Description</div>
+            </div>
+            <div class="step active">
+                <div class="step-number">2</div>
+                <div class="step-title">Set Priorities</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-title">Upload Resumes</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-title">Review Results</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form id="criteria-form" action="{{ url_for('set_criteria') }}?session_id={{ session_id }}" method="post" class="needs-validation" novalidate>
+            <input type="hidden" name="session_id" id="session_id" value="">
+            
+            <div class="alert alert-info mb-4">
+                <h4>Premium Priority Scale</h4>
+                <p class="mb-0">
+                    Set priorities from 1 (Lowest) to 10 (Highest) to customize how each criterion affects the overall candidate score.
+                </p>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-premium">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">Select</th>
+                            <th style="width: 45%">Criterion</th>
+                            <th style="width: 20%">Priority (1-10)</th>
+                            <th style="width: 30%">Priority Slider</th>
+                        </tr>
+                    </thead>
+                    <tbody id="criteria-table-body">
+                        {% for criterion in criteria %}
+                        <tr class="criterion-row">
+                            <td>
+                                <div class="form-check">
+                                    <input 
+                                        type="checkbox" 
+                                        class="form-check-input" 
+                                        id="criterion_{{ criterion|replace(' ', '_') }}" 
+                                        name="criterion_{{ criterion|replace(' ', '_') }}" 
+                                        checked
+                                    >
+                                </div>
+                            </td>
+                            <td>
+                                <label class="form-check-label" for="criterion_{{ criterion|replace(' ', '_') }}">
+                                    <h5 class="mb-0">{{ criterion }}</h5>
+                                </label>
+                            </td>
+                            <td>
+                                <input 
+                                    type="number" 
+                                    id="priority_{{ criterion|replace(' ', '_') }}" 
+                                    name="priority_{{ criterion|replace(' ', '_') }}" 
+                                    class="form-control priority-input" 
+                                    min="1" 
+                                    max="10" 
+                                    value="5" 
+                                    required
+                                    data-criterion="{{ criterion|replace(' ', '_') }}"
+                                >
+                                <div class="invalid-feedback">
+                                    Please enter a priority between 1 and 10.
+                                </div>
+                            </td>
+                            <td>
+                                <div class="priority-slider">
+                                    <input 
+                                        type="range" 
+                                        class="form-range priority-slider-input" 
+                                        min="1" 
+                                        max="10" 
+                                        value="5" 
+                                        id="slider_{{ criterion|replace(' ', '_') }}"
+                                        data-criterion="{{ criterion|replace(' ', '_') }}"
+                                    >
+                                    <div class="d-flex justify-content-between">
+                                        <small>Low</small>
+                                        <small>High</small>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('job_description') }}" class="btn btn-secondary">Back to Job Description</a>
+                <button type="submit" class="btn btn-primary btn-lg">Continue to Upload Resumes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set session ID from localStorage
+        const sessionId = SessionManager.getSessionId();
+        document.getElementById('session_id').value = sessionId;
+        
+        // Get criteria from localStorage if not provided by server
+        if (!document.querySelector('.criterion-row')) {
+            const criteria = SessionManager.get('rs_criteria', []);
+            if (criteria && criteria.length > 0) {
+                renderCriteriaTable(criteria);
+            } else {
+                // If no criteria in localStorage, fetch from server
+                fetchCriteriaFromServer();
+            }
+        }
+        
+        // Connect range sliders to number inputs
+        initSliders();
+        
+        // Handle form submission
+        document.getElementById('criteria-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!this.checkValidity()) {
+                this.classList.add('was-validated');
+                return;
+            }
+            
+            // Collect selected criteria and priorities
+            const selectedCriteria = [];
+            const priorities = {};
+            
+            document.querySelectorAll('.criterion-row').forEach(row => {
+                const checkbox = row.querySelector('.form-check-input');
+                if (checkbox && checkbox.checked) {
+                    const criterionId = checkbox.id.replace('criterion_', '');
+                    const criterion = checkbox.id.replace('criterion_', '').replace(/_/g, ' ');
+                    selectedCriteria.push(criterion);
+                    
+                    const priorityInput = row.querySelector('.priority-input');
+                    if (priorityInput) {
+                        priorities[criterion] = parseInt(priorityInput.value);
+                    }
+                }
+            });
+            
+            // Save to localStorage
+            SessionManager.set('rs_selected_criteria', selectedCriteria);
+            SessionManager.set('rs_priorities', priorities);
+            
+            try {
+                // Submit form data via AJAX
+                const formData = new FormData(this);
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.redirected) {
+                    // If the server redirected, follow the redirect
+                    window.location.href = response.url;
+                    return;
+                }
+                
+                try {
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        // Redirect to upload resumes page with session ID
+                        window.location.href = `${result.redirect}`;
+                    } else {
+                        // Show error message
+                        alert('Error: ' + (result.message || 'Failed to save criteria'));
+                    }
+                } catch (jsonError) {
+                    // If response is not JSON, it might be HTML
+                    window.location.href = `${url_for('upload_resumes')}?session_id=${sessionId}`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+        
+        // Function to initialize sliders
+        function initSliders() {
+            const sliders = document.querySelectorAll('.priority-slider-input');
+            const inputs = document.querySelectorAll('.priority-input');
+            const checkboxes = document.querySelectorAll('.form-check-input');
+            
+            // Function to update input from slider
+            function updateInputFromSlider(slider) {
+                const criterionId = slider.getAttribute('data-criterion');
+                const input = document.getElementById('priority_' + criterionId);
+                input.value = slider.value;
+                input.dispatchEvent(new Event('change'));
+            }
+            
+            // Function to update slider from input
+            function updateSliderFromInput(input) {
+                const criterionId = input.getAttribute('data-criterion');
+                const slider = document.getElementById('slider_' + criterionId);
+                slider.value = input.value;
+            }
+            
+            // Add event listeners to sliders
+            sliders.forEach(slider => {
+                // Set initial value
+                const criterionId = slider.getAttribute('data-criterion');
+                const input = document.getElementById('priority_' + criterionId);
+                slider.value = input.value;
+                
+                // Update input when slider changes
+                slider.addEventListener('input', function() {
+                    updateInputFromSlider(this);
+                });
+            });
+            
+            // Add event listeners to inputs
+            inputs.forEach(input => {
+                // Update slider when input changes
+                input.addEventListener('change', function() {
+                    updateSliderFromInput(this);
+                    
+                    // Update styling based on value
+                    const value = parseInt(this.value);
+                    if (value >= 1 && value <= 10) {
+                        const alpha = value / 10;
+                        this.style.backgroundColor = `rgba(58, 89, 152, ${alpha})`;
+                        this.style.color = value > 5 ? 'white' : 'black';
+                    } else {
+                        this.style.backgroundColor = '';
+                        this.style.color = '';
+                    }
+                });
+                
+                // Trigger change event to apply initial styling
+                input.dispatchEvent(new Event('change'));
+            });
+            
+            // Add event listeners to checkboxes
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const criterionId = this.id.replace('criterion_', '');
+                    const input = document.getElementById('priority_' + criterionId);
+                    const slider = document.getElementById('slider_' + criterionId);
+                    const row = this.closest('tr');
+                    
+                    if (this.checked) {
+                        input.removeAttribute('disabled');
+                        slider.removeAttribute('disabled');
+                        row.classList.remove('text-muted');
+                    } else {
+                        input.setAttribute('disabled', 'disabled');
+                        slider.setAttribute('disabled', 'disabled');
+                        row.classList.add('text-muted');
+                    }
+                });
+            });
+        }
+        
+        // Function to render criteria table
+        function renderCriteriaTable(criteria) {
+            const tableBody = document.getElementById('criteria-table-body');
+            tableBody.innerHTML = '';
+            
+            criteria.forEach(criterion => {
+                const criterionId = criterion.replace(/ /g, '_');
+                const row = document.createElement('tr');
+                row.className = 'criterion-row';
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="form-check">
+                            <input 
+                                type="checkbox" 
+                                class="form-check-input" 
+                                id="criterion_${criterionId}" 
+                                name="criterion_${criterionId}" 
+                                checked
+                            >
+                        </div>
+                    </td>
+                    <td>
+                        <label class="form-check-label" for="criterion_${criterionId}">
+                            <h5 class="mb-0">${criterion}</h5>
+                        </label>
+                    </td>
+                    <td>
+                        <input 
+                            type="number" 
+                            id="priority_${criterionId}" 
+                            name="priority_${criterionId}" 
+                            class="form-control priority-input" 
+                            min="1" 
+                            max="10" 
+                            value="5" 
+                            required
+                            data-criterion="${criterionId}"
+                        >
+                        <div class="invalid-feedback">
+                            Please enter a priority between 1 and 10.
+                        </div>
+                    </td>
+                    <td>
+                        <div class="priority-slider">
+                            <input 
+                                type="range" 
+                                class="form-range priority-slider-input" 
+                                min="1" 
+                                max="10" 
+                                value="5" 
+                                id="slider_${criterionId}"
+                                data-criterion="${criterionId}"
+                            >
+                            <div class="d-flex justify-content-between">
+                                <small>Low</small>
+                                <small>High</small>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Initialize sliders after rendering
+            initSliders();
+            
+            // Add animation to the table
+            const rows = document.querySelectorAll('.criterion-row');
+            rows.forEach((row, index) => {
+                row.style.opacity = "0";
+                row.style.transform = "translateY(10px)";
+                
+                setTimeout(() => {
+                    row.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                    row.style.opacity = "1";
+                    row.style.transform = "translateY(0)";
+                }, 100 + index * 50);
+            });
+        }
+        
+        // Function to fetch criteria from server
+        async function fetchCriteriaFromServer() {
+            try {
+                const sessionId = SessionManager.getSessionId();
+                const response = await fetch(`/api/session?session_id=${sessionId}`);
+                const result = await response.json();
+                
+                if (result.status === 'success' && result.data && result.data.criteria) {
+                    // Store criteria in localStorage
+                    SessionManager.set('rs_criteria', result.data.criteria);
+                    
+                    // Render criteria table
+                    renderCriteriaTable(result.data.criteria);
+                } else {
+                    console.error('Failed to fetch criteria from server');
+                }
+            } catch (error) {
+                console.error('Error fetching criteria:', error);
+            }
+        }
+    });
+</script>
+{% endblock %}

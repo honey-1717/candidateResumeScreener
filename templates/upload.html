@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Job Description - Resume Screener{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Enter Job Description</h1>
+        <p class="lead">
+            Enter the job description to begin the resume screening process.
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="steps">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <div class="step-title">Enter Job Description</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-title">Select Criteria</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-title">Set Priorities</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-title">Upload Resumes</div>
+            </div>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-title">Review Results</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('upload') }}" method="post" class="needs-validation" novalidate>
+            <div class="form-group mb-4">
+                <label for="job_description" class="form-label">Job Description</label>
+                <textarea 
+                    id="job_description" 
+                    name="job_description" 
+                    class="form-control" 
+                    rows="12" 
+                    placeholder="Paste the full job description here..." 
+                    required
+                ></textarea>
+                <div class="invalid-feedback">
+                    Please enter a job description.
+                </div>
+                <div class="form-text">
+                    The more detailed the job description, the better the AI can identify relevant evaluation criteria.
+                </div>
+            </div>
+            
+            <div class="alert alert-info">
+                <h4>Tips for Best Results</h4>
+                <ul>
+                    <li>Include detailed information about required skills, experience, and qualifications</li>
+                    <li>Specify education requirements, technical skills, and soft skills</li>
+                    <li>Include information about the role's responsibilities and day-to-day tasks</li>
+                </ul>
+            </div>
+            
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Generate Criteria</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Job Description - Resume Screener Premium{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Enter Job Description</h1>
+        <p class="lead">
+            Enter the job description to begin the premium screening process.
+        </p>
+    </div>
+</div>
+
+<div class="card card-premium">
+    <div class="card-header">
+        <div class="steps">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <div class="step-title">Job Description</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-title">Set Priorities</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-title">Upload Resumes</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-title">Review Results</div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="loading-container" class="text-center my-5 d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing job description with AI...</p>
+        </div>
+        
+        <div id="job-form-container">
+            <form id="job-description-form" action="{{ url_for('job_description') }}" method="post" class="needs-validation" novalidate>
+                <input type="hidden" name="session_id" id="session_id" value="">
+                <div class="form-group mb-4">
+                    <label for="job_text" class="form-label">Job Description</label>
+                    <textarea id="job_text" name="job_text" class="form-control" rows="10" placeholder="Paste your job description here..." required></textarea>
+                    <div class="invalid-feedback">
+                        Please enter a job description.
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h4>Premium Tips for Best Results</h4>
+                    <ul>
+                        <li>Include detailed information about required skills and qualifications</li>
+                        <li>Specify education requirements and experience level</li>
+                        <li>List specific technical skills or certifications needed</li>
+                        <li>Describe key responsibilities and day-to-day tasks</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Generate Criteria</button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="criteria-container" class="d-none">
+            <h3>Candidate Evaluation Criteria</h3>
+            <p>These criteria will be used to differentiate and rank candidates. Select the ones you want to use and set their priorities:</p>
+            
+            <div class="alert alert-info mb-4">
+                <h5>How to Use These Criteria</h5>
+                <ul>
+                    <li>Each criterion will become a column in your candidate comparison table</li>
+                    <li>Candidates will receive a score (0-10) for each criterion</li>
+                    <li>Higher priority criteria will have more weight in the overall ranking</li>
+                    <li>You can deselect any criteria that aren't relevant for your needs</li>
+                </ul>
+            </div>
+            
+            <form id="criteria-form" action="{{ url_for('set_criteria') }}" method="post" class="needs-validation" novalidate>
+                <input type="hidden" name="session_id" id="criteria_session_id" value="">
+                <div id="criteria-list" class="mb-4">
+                    <!-- Criteria will be added here dynamically -->
+                </div>
+                
+                <div class="alert alert-info mb-4">
+                    <p class="mb-0">
+                        <strong>Priority Scale:</strong> 1 (Lowest) to 10 (Highest)
+                    </p>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" id="back-to-job" class="btn btn-secondary">Back to Job Description</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Continue to Upload Resumes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/api-client.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const jobForm = document.getElementById('job-description-form');
+        const criteriaForm = document.getElementById('criteria-form');
+        const jobFormContainer = document.getElementById('job-form-container');
+        const criteriaContainer = document.getElementById('criteria-container');
+        const loadingContainer = document.getElementById('loading-container');
+        const criteriaList = document.getElementById('criteria-list');
+        const backToJobBtn = document.getElementById('back-to-job');
+        const sessionIdInput = document.getElementById('session_id');
+        const criteriaSessionIdInput = document.getElementById('criteria_session_id');
+    
+    // Set session ID from localStorage
+    const sessionId = SessionManager.getSessionId();
+    sessionIdInput.value = sessionId;
+    criteriaSessionIdInput.value = sessionId;
+    
+    // Handle job description form submission
+    jobForm.addEventListener('submit', async function(e) {
+        e.preventDefault(); // Prevent default form submission
+        
+        if (!this.checkValidity()) {
+            this.classList.add('was-validated');
+            return;
+        }
+        
+        // Show loading spinner
+        jobFormContainer.classList.add('d-none');
+        loadingContainer.classList.remove('d-none');
+        
+        // Get job description
+        const jobDescription = document.getElementById('job_text').value;
+        
+        // Save job description to localStorage
+        SessionManager.set('rs_job_description', jobDescription);
+        
+        try {
+            // Submit form data via AJAX
+            const formData = new FormData(jobForm);
+            const response = await fetch(jobForm.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.redirected) {
+                // If the server redirected, follow the redirect
+                window.location.href = response.url;
+                return;
+            }
+            
+            // Try to parse JSON response
+            try {
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Store criteria in localStorage
+                    SessionManager.set('rs_criteria', result.criteria);
+                    
+                    // Redirect to criteria page with session ID
+                    window.location.href = `${result.redirect}?session_id=${sessionId}`;
+                } else {
+                    // Show error message
+                    alert('Error: ' + (result.message || 'Failed to process job description'));
+                    
+                    // Hide loading spinner
+                    loadingContainer.classList.add('d-none');
+                    jobFormContainer.classList.remove('d-none');
+                }
+            } catch (jsonError) {
+                // If response is not JSON, it might be HTML
+                const htmlResponse = await response.text();
+                
+                if (htmlResponse.includes('criteria')) {
+                    // If the response contains criteria page, redirect to criteria page
+                    window.location.href = `${url_for('set_criteria')}?session_id=${sessionId}`;
+                } else {
+                    // Show error
+                    console.error('Error parsing response:', jsonError);
+                    alert('An error occurred. Please try again.');
+                    
+                    // Hide loading spinner
+                    loadingContainer.classList.add('d-none');
+                    jobFormContainer.classList.remove('d-none');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+            
+            // Hide loading spinner
+            loadingContainer.classList.add('d-none');
+            jobFormContainer.classList.remove('d-none');
+        }
+    });
+    
+    // Handle back button
+    backToJobBtn.addEventListener('click', function() {
+        criteriaContainer.classList.add('d-none');
+        jobFormContainer.classList.remove('d-none');
+    });
+    
+    // Check if we have data in localStorage
+    const storedJobDescription = SessionManager.get('rs_job_description');
+    
+    if (storedJobDescription) {
+        // Fill the job description field
+        document.getElementById('job_text').value = storedJobDescription;
+    }
+});
+</script>
+{% endblock %}

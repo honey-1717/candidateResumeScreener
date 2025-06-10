@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Evaluation Results - Resume Screener{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/results-page.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="results-header">
+    <div class="container">
+        <h1>Premium Evaluation Results</h1>
+        <p class="lead">
+            Review the AI-powered evaluation results and find the best candidate for your position.
+        </p>
+    </div>
+</div>
+
+<div class="container mt-4">
+    <div class="card card-premium results-main-card">
+        <div class="card-header">
+            <div class="steps">
+                <div class="step completed">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Job Description</div>
+                </div>
+                <div class="step completed">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Set Priorities</div>
+                </div>
+                <div class="step completed">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Upload Resumes</div>
+                </div>
+                <div class="step active">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Review Results</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="export-actions">
+                <div class="export-title">
+                    <h4>Export Options</h4>
+                    <p>Download your results in various formats for further analysis</p>
+                </div>
+                <div class="export-buttons">
+                    <a href="{{ url_for('download_results') }}?session_id={{ session_id }}" class="export-btn export-btn-basic">
+                        <div class="export-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                        </div>
+                        <div class="export-info">
+                            <span class="export-name">Basic CSV</span>
+                            <span class="export-desc">Simple scores only</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('download_detailed_csv') }}?session_id={{ session_id }}" class="export-btn export-btn-detailed">
+                        <div class="export-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                                <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                            </svg>
+                        </div>
+                        <div class="export-info">
+                            <span class="export-name">Detailed CSV</span>
+                            <span class="export-desc">With justifications</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('download_detailed_excel') }}?session_id={{ session_id }}" class="export-btn export-btn-excel">
+                        <div class="export-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                                <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                            </svg>
+                        </div>
+                        <div class="export-info">
+                            <span class="export-name">Excel Report</span>
+                            <span class="export-desc">Complete analysis</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <div id="results-container" class="results-grid">
+                <div class="results-table-container">
+                    <div class="results-table-header">
+                        <h3>Candidate Rankings</h3>
+                        <div class="results-search">
+                            <input type="text" id="candidate-search" placeholder="Search candidates..." class="search-input">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-premium results-table">
+                            <thead>
+                                <tr>
+                                    <th class="rank-col">Rank</th>
+                                    <th class="candidate-col">Candidate</th>
+                                    <th class="score-col">Overall Score</th>
+                                    {% for criterion in criteria %}
+                                    <th class="criterion-col text-center">
+                                        <div class="criterion-header">{{ criterion }}</div>
+                                        <small class="criterion-priority">Priority: {{ priorities[criterion] }}/10</small>
+                                    </th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidate, data in results %}
+                                <tr class="candidate-row {% if loop.first %}selected{% endif %}" data-candidate="{{ candidate }}" data-score="{{ data.overall_score }}">
+                                    <td class="rank-cell">
+                                        {% if loop.first %}
+                                        <div class="rank rank-1">1st</div>
+                                        {% elif loop.index == 2 %}
+                                        <div class="rank rank-2">2nd</div>
+                                        {% elif loop.index == 3 %}
+                                        <div class="rank rank-3">3rd</div>
+                                        {% else %}
+                                        <div class="rank rank-other">{{ loop.index }}th</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="candidate-cell">{{ candidate }}</td>
+                                    <td class="score-cell">
+                                        <div class="score-display-small">
+                                            <div class="progress-container">
+                                                <div class="progress">
+                                                    <div class="progress-bar {% if data.overall_score >= 80 %}bg-success{% elif data.overall_score >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                        role="progressbar" 
+                                                        aria-valuenow="{{ data.overall_score }}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100"
+                                                        style="width: {{ data.overall_score }}%">
+                                                    </div>
+                                                </div>
+                                                <span class="score-value {% if data.overall_score >= 80 %}text-success{% elif data.overall_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                                    {{ "%.1f"|format(data.overall_score) }}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% for criterion in criteria %}
+                                    <td class="criterion-score-cell text-center">
+                                        {% set score = data.criteria_scores.get(criterion, 0) %}
+                                        <div class="criterion-score {% if score >= 8 %}score-high{% elif score >= 6 %}score-medium{% else %}score-low{% endif %}">
+                                            {{ score }}
+                                        </div>
+                                        <button class="info-button show-justification" 
+                                                data-candidate="{{ candidate }}" 
+                                                data-criterion="{{ criterion }}"
+                                                title="Click to see justification">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="results-actions">
+                        <a href="{{ url_for('upload_resumes') }}?session_id={{ session_id }}" class="btn btn-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
+                                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                            </svg>
+                            Back to Resumes
+                        </a>
+                        <a href="{{ url_for('job_description') }}" class="btn btn-primary" id="start-new-screening">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                            Start New Screening
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="candidate-details-container">
+                    <div class="card premium-card candidate-details" id="candidate-details">
+                        <div class="card-header">
+                            <h3 class="card-title mb-0">Candidate Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="candidate-name" id="detail-candidate-name">
+                                {% if results|length > 0 %}
+                                {{ results[0][0] }}
+                                {% endif %}
+                            </h4>
+                            
+                            <div class="score-display">
+                                <div class="score-circle {% if results|length > 0 %}{% if results[0][1].overall_score >= 80 %}score-high{% elif results[0][1].overall_score >= 60 %}score-medium{% else %}score-low{% endif %}{% endif %}" id="detail-score-circle">
+                                    <span id="detail-score-value">
+                                        {% if results|length > 0 %}
+                                        {{ results[0][1].overall_score|round|int }}%
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="score-details">
+                                    <h5>Overall Score</h5>
+                                    <p class="mb-0">Based on your priority settings</p>
+                                </div>
+                            </div>
+                            
+                            <h5 class="mt-4 section-title">Criteria Scores & Justifications</h5>
+                            <div id="criteria-scores-container">
+                                {% if results|length > 0 %}
+                                    {% for criterion in criteria %}
+                                        {% set score = results[0][1].criteria_scores.get(criterion, 0) %}
+                                        {% set justification = results[0][1].justifications.get(criterion, "No justification provided.") %}
+                                        <div class="mb-4 criterion-detail-card">
+                                            <div class="criterion-header d-flex justify-content-between align-items-center">
+                                                <span class="fw-medium">{{ criterion }}</span>
+                                                <span class="fw-bold {% if score >= 8 %}text-success{% elif score >= 6 %}text-warning{% else %}text-danger{% endif %}">
+                                                    {{ score }}/10
+                                                </span>
+                                            </div>
+                                            <div class="progress mb-2" style="height: 8px;">
+                                                <div class="progress-bar {% if score >= 8 %}bg-success{% elif score >= 6 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    aria-valuenow="{{ score * 10 }}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100"
+                                                    style="width: {{ score * 10 }}%;">
+                                                </div>
+                                            </div>
+                                            <div class="criterion-justification">
+                                                <small class="text-muted">Priority: {{ priorities[criterion] }}/10</small>
+                                                <div class="mt-2 p-2 bg-light rounded">
+                                                    <strong>Justification:</strong> {{ justification }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            
+                            <div class="recommendation-box mt-4">
+                                <h5 class="recommendation-title">Premium Recommendation</h5>
+                                <p class="recommendation-text" id="recommendation-text">
+                                    {% if results|length > 0 %}
+                                        {% if results[0][1].overall_score >= 80 %}
+                                        <span class="text-success fw-bold">Excellent Match:</span> This candidate is highly qualified for the position and should be prioritized for interviews.
+                                        {% elif results[0][1].overall_score >= 60 %}
+                                        <span class="text-warning fw-bold">Good Match:</span> This candidate meets most of the requirements but may need additional training in some areas.
+                                        {% else %}
+                                        <span class="text-danger fw-bold">Potential Mismatch:</span> This candidate may not be the best fit for this specific position based on the criteria you selected.
+                                        {% endif %}
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Justification Modal -->
+<div class="modal fade" id="justificationModal" tabindex="-1" aria-labelledby="justificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="justificationModalLabel">Criterion Justification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 id="modal-criterion-name" class="fw-bold mb-3"></h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span>Score:</span>
+                    <span id="modal-criterion-score" class="fw-bold"></span>
+                </div>
+                <div class="p-3 bg-light rounded">
+                    <h6 class="fw-bold">Justification:</h6>
+                    <p id="modal-criterion-justification" class="mb-0"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="session_id" value="{{ session_id }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sessionId = document.getElementById('session_id').value;
+        
+        var resultsData = {{ results|tojson|safe }};
+        
+        var candidateRows = document.querySelectorAll('.candidate-row');
+        candidateRows.forEach(function(row) {
+            row.addEventListener('click', function() {
+                candidateRows.forEach(function(r) {
+                    r.classList.remove('selected');
+                });
+                
+                this.classList.add('selected');
+                var candidate = this.getAttribute('data-candidate');
+                var candidateData = null;
+                
+                for (var i = 0; i < resultsData.length; i++) {
+                    if (resultsData[i][0] === candidate) {
+                        candidateData = resultsData[i][1];
+                        break;
+                    }
+                }
+                
+                if (candidateData) {
+                    showCandidateDetails(candidate, candidateData);
+                }
+            });
+        });
+        
+        var justificationButtons = document.querySelectorAll('.show-justification');
+        justificationButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent row click
+                
+                var candidate = this.getAttribute('data-candidate');
+                var criterion = this.getAttribute('data-criterion');
+                var candidateData = null;
+                
+                for (var i = 0; i < resultsData.length; i++) {
+                    if (resultsData[i][0] === candidate) {
+                        candidateData = resultsData[i][1];
+                        break;
+                    }
+                }
+                
+                if (candidateData) {
+                    document.getElementById('modal-criterion-name').textContent = criterion;
+                    
+                    var score = candidateData.criteria_scores[criterion] || 0;
+                    var scoreElement = document.getElementById('modal-criterion-score');
+                    scoreElement.textContent = score + '/10';
+                    
+                    scoreElement.className = 'fw-bold';
+                    if (score >= 8) {
+                        scoreElement.classList.add('text-success');
+                    } else if (score >= 6) {
+                        scoreElement.classList.add('text-warning');
+                    } else {
+                        scoreElement.classList.add('text-danger');
+                    }
+                    
+                    var justification = candidateData.justifications[criterion] || "No justification provided.";
+                    document.getElementById('modal-criterion-justification').textContent = justification;
+                    
+                    if (typeof bootstrap !== 'undefined') {
+                        var modal = new bootstrap.Modal(document.getElementById('justificationModal'));
+                        modal.show();
+                    } else {
+                        alert('Justification for ' + criterion + ': ' + justification);
+                    }
+                }
+            });
+        });
+        function showCandidateDetails(candidate, data) 
+        {
+            document.getElementById('detail-candidate-name').textContent = candidate;
+            
+            var scoreCircle = document.getElementById('detail-score-circle');
+            var scoreValue = document.getElementById('detail-score-value');
+            
+            scoreCircle.className = 'score-circle';
+            if (data.overall_score >= 80) {
+                scoreCircle.classList.add('score-high');
+            } else if (data.overall_score >= 60) {
+                scoreCircle.classList.add('score-medium');
+            } else {
+                scoreCircle.classList.add('score-low');
+            }
+            
+            scoreValue.textContent = Math.round(data.overall_score) + '%';
+            var criteriaScoresContainer = document.getElementById('criteria-scores-container');
+            criteriaScoresContainer.innerHTML = '';
+            
+            var criteriaList = {{ criteria|tojson|safe }};
+            var prioritiesList = {{ priorities|tojson|safe }};
+            
+            for (var i = 0; i < criteriaList.length; i++) {
+                var criterion = criteriaList[i];
+                var score = data.criteria_scores[criterion] || 0;
+                var justification = data.justifications[criterion] || "No justification provided.";
+                var priority = prioritiesList[criterion] || 5;
+                
+                var scoreDiv = document.createElement('div');
+                scoreDiv.className = 'mb-4 criterion-detail-card';
+                
+                var scoreClass = score >= 8 ? 'text-success' : score >= 6 ? 'text-warning' : 'text-danger';
+                var barClass = score >= 8 ? 'bg-success' : score >= 6 ? 'bg-warning' : 'bg-danger';
+                
+                scoreDiv.innerHTML = 
+                    '<div class="criterion-header d-flex justify-content-between align-items-center">' +
+                        '<span class="fw-medium">' + criterion + '</span>' +
+                        '<span class="fw-bold ' + scoreClass + '">' + score + '/10</span>' +
+                    '</div>' +
+                    '<div class="progress mb-2" style="height: 8px;">' +
+                        '<div class="progress-bar ' + barClass + '" ' +
+                            'role="progressbar" ' +
+                            'aria-valuenow="' + (score * 10) + '" ' +
+                            'aria-valuemin="0" ' +
+                            'aria-valuemax="100" ' +
+                            'style="width: ' + (score * 10) + '%">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="criterion-justification">' +
+                        '<small class="text-muted">Priority: ' + priority + '/10</small>' +
+                        '<div class="mt-2 p-2 bg-light rounded">' +
+                            '<strong>Justification:</strong> ' + justification +
+                        '</div>' +
+                    '</div>';
+                
+                criteriaScoresContainer.appendChild(scoreDiv);
+            }
+            var recommendationText = document.getElementById('recommendation-text');
+            if (data.overall_score >= 80) {
+                recommendationText.innerHTML = '<span class="text-success fw-bold">Excellent Match:</span> This candidate is highly qualified for the position and should be prioritized for interviews.';
+            } else if (data.overall_score >= 60) {
+                recommendationText.innerHTML = '<span class="text-warning fw-bold">Good Match:</span> This candidate meets most of the requirements but may need additional training in some areas.';
+            } else {
+                recommendationText.innerHTML = '<span class="text-danger fw-bold">Potential Mismatch:</span> This candidate may not be the best fit for this specific position based on the criteria you selected.';
+            }
+        }
+        
+        document.getElementById('start-new-screening').addEventListener('click', function(e) {
+            SessionManager.clear();
+            
+            SessionManager.initSession();
+        });
+
+        const searchInput = document.getElementById('candidate-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                candidateRows.forEach(function(row) {
+                    const candidateName = row.getAttribute('data-candidate').toLowerCase();
+                    
+                    if (candidateName.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
