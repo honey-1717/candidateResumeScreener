@@ -3,7 +3,7 @@ services:
     name: flask-app
     runtime: python
     buildCommand: ""
-    startCommand: "gunicorn app:app"
+    startCommand: gunicorn app:app --timeout 120 --workers 2 --bind 0.0.0.0:10000
     envVars:
       - key: FLASK_ENV
         value: production
