@@ -18,7 +18,7 @@ from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, SECRET_KEY, GOOGLE_API_KEY
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  
 app.secret_key = SECRET_KEY
 
 # Create necessary directories
@@ -189,70 +189,86 @@ def set_criteria():
     
     return render_template('criteria.html', criteria=criteria, session_id=session_id)
 
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
+session_storage = {}  # Your session data storage (assumed global)
+
+# Assuming resume_processor and candidate_evaluator are already defined and imported
+
+def allowed_file(filename, allowed_extensions):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+
+
 @app.route('/upload_resumes', methods=['GET', 'POST'])
 def upload_resumes():
     """Handle resume uploads"""
     session_id = request.args.get('session_id') or request.form.get('session_id')
-    
+
     if not session_id or session_id not in session_storage:
         flash('Please enter a job description first', 'warning')
         return redirect(url_for('job_description'))
-    
+
     session_data = session_storage[session_id]
-    
+
     if 'job_description' not in session_data:
         flash('Please enter a job description first', 'warning')
         return redirect(url_for('job_description'))
-    
+
     if 'selected_criteria' not in session_data or 'priorities' not in session_data:
         flash('Please set criteria priorities first', 'warning')
         return redirect(url_for('set_criteria', session_id=session_id))
-    
+
     if request.method == 'POST':
-        # Check if at least one resume is provided
+        # Check for resume files
         if 'resumes' not in request.files:
             flash('No resume files provided', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
-        
+
         resume_files = request.files.getlist('resumes')
-        if len(resume_files) == 0 or resume_files[0].filename == '':
+        if not resume_files or resume_files[0].filename == '':
             flash('No resume files selected', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
-        
-        # Create resume directory
+
+        # Create directories
         session_dir = os.path.join(UPLOAD_FOLDER, session_id)
         resume_dir = os.path.join(session_dir, 'resumes')
         os.makedirs(resume_dir, exist_ok=True)
-        
-        # Save resumes
+
+        # Save valid resumes
         resume_paths = []
         for resume_file in resume_files:
             if resume_file and allowed_file(resume_file.filename, ALLOWED_EXTENSIONS):
-                resume_filename = secure_filename(resume_file.filename)
-                resume_path = os.path.join(resume_dir, resume_filename)
-                resume_file.save(resume_path)
-                resume_paths.append(resume_path)
-        
+                filename = secure_filename(resume_file.filename)
+                path = os.path.join(resume_dir, filename)
+                resume_file.save(path)
+                resume_paths.append(path)
+
         if not resume_paths:
             flash('No valid resume files uploaded', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
-        
+
         session_data['resume_paths'] = resume_paths
-        
-        # Process all resumes together for better comparison
-        print(f"Processing {len(resume_paths)} resumes for comparative evaluation")
+
+        # Extract job description & evaluation criteria
         job_description = session_data['job_description']
         selected_criteria = session_data['selected_criteria']
         priorities = session_data['priorities']
-        
+
+        # Process resumes
         processed_resumes = {}
         for resume_path in resume_paths:
             candidate_name = os.path.basename(resume_path).split('.')[0]
             resume_text = resume_processor.extract_text(resume_path)
+            if not resume_text.strip():
+                flash(f'{candidate_name} resume is empty or unreadable.', 'warning')
+                continue
             processed_resumes[candidate_name] = resume_text
-        
-        # Evaluate all candidates together for better comparison
-        print(f"Starting comparative evaluation of {len(processed_resumes)} candidates")
+
+        if not processed_resumes:
+            flash('No readable resumes processed.', 'danger')
+            return redirect(url_for('upload_resumes', session_id=session_id))
+
+        # Evaluate
         try:
             results = candidate_evaluator.evaluate_candidates(
                 job_description,
@@ -260,45 +276,41 @@ def upload_resumes():
                 priorities,
                 processed_resumes
             )
-            
+
             session_data['results'] = results
-            
-            # Save results to CSV
+
+            # Save results
             results_dir = os.path.join(UPLOAD_FOLDER, 'results', session_id)
             os.makedirs(results_dir, exist_ok=True)
-            
-            output_file = os.path.join(results_dir, 'evaluation_results.csv')
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            output_file = os.path.join(results_dir, f'evaluation_results_{timestamp}.csv')
+
             sorted_results = sorted(
                 [(candidate, data) for candidate, data in results.items()],
                 key=lambda x: x[1]['overall_score'],
                 reverse=True
             )
+
             save_results_to_csv(sorted_results, priorities, output_file)
             session_data['results_file'] = output_file
-            
-            # Debug: Print session data before redirecting to results
-            print("Session data before redirecting to results:")
-            print(f"Session ID: {session_id}")
-            print(f"Has Results: {'results' in session_data}")
-            print(f"Results Keys: {list(session_data.get('results', {}).keys())}")
-            
-            # Return JSON response with session data for AJAX requests
+
+            # AJAX response support
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'status': 'success',
                     'session_id': session_id,
                     'redirect': url_for('show_results', session_id=session_id)
                 })
-            
-            # Redirect to results page
-            print(f"Redirecting to: {url_for('show_results', session_id=session_id)}")
+
             return redirect(url_for('show_results', session_id=session_id))
+
         except Exception as e:
             flash(f'Error evaluating candidates: {str(e)}', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
-    
+
+    # Render upload page (GET)
     return render_template(
-        'upload_resumes.html', 
+        'upload_resumes.html',
         session_id=session_id,
         selected_criteria=session_data.get('selected_criteria', []),
         priorities=session_data.get('priorities', {})
