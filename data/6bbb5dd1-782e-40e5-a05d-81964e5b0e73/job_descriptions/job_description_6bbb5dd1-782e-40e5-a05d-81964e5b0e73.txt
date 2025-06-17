@@ -1,79 +1,56 @@
-Reports To: Learning Experience Design Manager
-Status: Full-time
-Department: Product
-About the Role
-As we continue to grow, we seek a highly motivated and detail-oriented person who is 
-passionate about creating engaging learning experiences and is driven to provide excellent 
-customer service. 
-As part of the Product Team, you will develop content and curriculum to accelerate scalable 
-learning for our 30,000+ global learners. In this role, you will apply adult learning theory, 
-instructional design best practices, and appropriate technologies to deliver and engage 
-learners through blended learning solutions. This role will have opportunities for creativity and 
-solving problems/making positive impact to many stakeholders. This role offers abundant 
-opportunities for creativity, problem-solving, and making a positive impact on numerous 
-stakeholders.
-The ideal candidate can multi-task in a fast-paced, ever-changing environment. Can apply 
-adult learning and be a creative and analytical problem-solver.
-Responsibilities:
-• Manage multiple complex curricula development projects simultaneously
-• Develop highly engaging and interactive training materials, and deliver engaging
-presentations to stakeholders and business leaders
-• Ensure that all training materials adhere to design standards
-• Apply your expertise to Sandler’s Instructional Design principles for online and 
-instructor-led sessions to drive excellent learner outcomes
-• Visualize instructional graphics, the user interface, and the finished product to work 
-with vendor partners, and delivery teams
-• Design training interventions in a variety of modalities (self-directed, instructor-led, or
-blended) and develop associated course assets including facilitator guides, slideware, 
-and participant guides
-• Develop storyboards for eLearning, animation, and video
-• Develop and test Articulate Storyline or Rise packages
-• Customize standard program materials to client design needs for role plays, 
-examples, references
-Instructional Designer II
-• Collaborate with Subject Matter Experts (SMEs) and internal team members to design, 
-develop, and implement learning solutions that ensure mastery of learning objectives 
-and learner retention 
-• Create reliable and valid learner evaluation tools to gauge knowledge and skill
-transfer and training effectiveness
-• Utilize project management tools and skills to lead small to medium-scale content
-development projects
-• Contribute to the development and implementation of new learning models and
-content design templates
-• Stay ahead of market information/best practices relating to adult learning 
-methodologies, learning experience design, sales industry training, and ISD technology 
-advancements
-Does this sound like you? 
-• Have curiosity and “grit”
-• Business acumen 
-• Strategi agility
-• Drives for results 
-• Customer Focused 
-• Learn on the fly
-•
-Qualifications: 
-• Bachelor’s degree in training and development, Instructional Design, Education, 
-Business, Organizational Development, or related fields
-• Advanced degree or Professional Achievement Certifications in instructional design or 
-related preferred
-• 3-5 years of instructional design, writing, and build experience for blended learning 
-experiences (eLearning, ILT, vILT, resources, tools, assessments)
-• 1+ years of relevant sales experience in sales training or sales enablement a plus 
-• Strong project and stakeholder management skills
-• Skilled with authorware and visual design (e.g., Articulate 360, Camtasia, Go Animate, 
-Powtoon, Vyond) 
-• Current with virtual and hybrid learning implementation best practices
-• Proficient with Adobe Creative Cloud (InDesign, Illustrator, Aftereffects/Premiere)
-• Expert in PPT design, build, and configuration including master templates
-• Experience in professional development or training industry, ideally working in high 
-tech, construction, health care and/or professional services is a plus, but not required
-• Knowledge of LMS and SCORM settings 
-• Effective verbal and written communication skills
-Instructional Designer II
-Work Environment and Physical Requirements:
-While performing the responsibilities of this position, the employee is required to be stationary 
-for long periods and may spend long periods in meetings and talking with customers. Several 
-hours each day can be spent in front of a computer screen. The employee is occasionally 
-required to reach with arms and hands, climb or balance, and stoop, kneel, and crouch. Close 
-vision and fine motor skills for computers are needed. The employee must be able to lift up to 
-15 lbs
+
+We are seeking a talented and motivated AI Developer to join our team. In this role, you 
+will be responsible for designing, building, deploying, and managing AI agents that 
+operate on client data. You will work closely with clients and internal teams to ensure 
+the AI agents are optimized, reliable, and deliver measurable value. This is a hands-on 
+role that requires a strong technical background, problem-solving skills, and a passion 
+for AI innovation.
+Key Responsibilities
+• Build AI agents tailored to client requirements using state-of-the-art AI/ML 
+techniques.
+• Develop and fine-tune machine learning models, natural language processing 
+(NLP) systems, and other AI components.
+• Integrate AI agents with client systems and data pipelines.
+• Deploy AI agents into production environments, ensuring scalability and 
+reliability.
+• Implement monitoring systems to track agent performance, detect failures, and 
+ensure uptime
+• Proactively manage AI agents to address failures, performance bottlenecks, and 
+data drift.
+• Continuously optimize AI models and systems to improve accuracy, efficiency, 
+and client outcomes.
+• Collaborate with clients to understand evolving needs and update AI agents 
+accordingly.
+• Work closely with cross-functional teams, including data scientists, engineers, 
+and product managers.
+• Communicate technical concepts and solutions to non-technical stakeholders.
+• Provide regular updates and reports on agent performance and improvements.
+• Stay up-to-date with the latest advancements in AI/ML technologies and tools.
+• Experiment with new approaches to enhance the capabilities of AI agents.
+Key Skills
+• Technical Expertise:
+o Proficiency in programming languages such as Python, Java, or C++.
+o Strong experience with AI/ML frameworks like TensorFlow, PyTorch, or 
+Hugging Face.
+o Familiarity with NLP, reinforcement learning, and other AI techniques.
+o Experience with cloud platforms (e.g., AWS, Azure, GCP) and 
+containerization tools (e.g., Docker, Kubernetes).
+• Data Handling and Integration:
+o Expertise in working with structured and unstructured data.
+o Experience with data preprocessing, feature engineering, and data 
+pipeline development.
+o Knowledge of APIs, databases, and ETL processes.
+• Deployment and Monitoring:
+o Hands-on experience deploying AI models into production environments.
+o Familiarity with monitoring tools (e.g., Prometheus, Grafana) and logging 
+frameworks.
+o Understanding of CI/CD pipelines and DevOps practices.
+• Problem-Solving and Analytical Skills:
+o Strong ability to troubleshoot and resolve technical issues.
+o Analytical mindset with a focus on delivering measurable results.
+Nice-to-Have Skills:
+• Experience working with LLMs (Large Language Models) and fine-tuning AI 
+models for specific applications.
+• Knowledge of reinforcement learning and AI agent-based automation.
+• Experience with MLOps pipelines for CI/CD automation in AI workflows.
+• Understanding of ethical AI principles and responsible AI deployment practices

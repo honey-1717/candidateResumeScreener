@@ -8,7 +8,7 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, 'data')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc'}
 
 # API settings
-GOOGLE_API_KEY ="AIzaSyCs-oX4DvQv7_B9FOuAXTVMnij_JKhkWCo"
+GOOGLE_API_KEY ="AIzaSyC6KeNHx0RGMmKgX9G09UC6maAlV42dcM4"
 
 # Gemini API settings
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
