@@ -99,10 +99,6 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Set session ID from localStorage
-        document.getElementById('session_id').value = SessionManager.getSessionId();
-        
-        // Load selected criteria and priorities from localStorage
         const selectedCriteria = SessionManager.get('rs_selected_criteria', []);
         const priorities = SessionManager.get('rs_priorities', {});
         
@@ -194,13 +190,21 @@
                 this.style.backgroundColor = '';
                 
                 const input = this.querySelector('input[type="file"]');
-                if (input) {
-                    input.files = e.dataTransfer.files;
-                    
-                    // Trigger change event
-                    const event = new Event('change', { bubbles: true });
-                    input.dispatchEvent(event);
-                }
+if (input) {
+    const fileList = e.dataTransfer.files;
+
+    if (fileList.length > 0) {
+        const dataTransfer = new DataTransfer();
+        for (let i = 0; i < fileList.length; i++) {
+            dataTransfer.items.add(fileList[i]);
+        }
+        input.files = dataTransfer.files;
+
+        // Trigger change event
+        const event = new Event('change', { bubbles: true });
+        input.dispatchEvent(event);
+    }
+}
             });
         }
         
