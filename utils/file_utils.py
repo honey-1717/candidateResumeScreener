@@ -44,24 +44,36 @@ def save_results_to_csv(results: List[tuple], priorities: Dict[str, int], output
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
     # Get all criteria from the first result
-    criteria = list(results[0][1]['criteria_scores'].keys())
-    
+    # Ensure criteria are consistently ordered if possible, or use priorities.keys()
+    # if criteria are guaranteed to be in priorities
+    first_result_criteria = results[0][1].get('criteria_scores', {})
+    if not first_result_criteria and priorities: # Fallback if criteria_scores is empty
+        criteria_order = list(priorities.keys())
+    elif first_result_criteria:
+        criteria_order = list(first_result_criteria.keys())
+    else: # No criteria info available
+        criteria_order = []
+
+
     with open(output_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         
         # Write header row
-        header = ['Candidate', 'Overall Score (%)'] + [f"{c} (Priority: {priorities[c]})" for c in criteria]
+        header = ['Candidate', 'Overall Score (%)']
+        for c in criteria_order:
+            priority_val = priorities.get(c, 'N/A') # Get priority, default to N/A if not found
+            header.append(f"{c} (Score)") # Removed priority from header for simplicity, it's in detailed Excel
         writer.writerow(header)
         
         # Write data rows
-        for candidate, result in results:
+        for candidate, result_data in results:
             row = [
                 candidate, 
-                f"{result['overall_score']:.2f}"
+                f"{result_data.get('overall_score', 0):.2f}"
             ]
             
-            for criterion in criteria:
-                row.append(result['criteria_scores'][criterion])
+            for criterion in criteria_order:
+                row.append(result_data.get('criteria_scores', {}).get(criterion, 0))
             
             writer.writerow(row)
 

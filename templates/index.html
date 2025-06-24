@@ -1,118 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Resume Screener Premium - AI-Powered Candidate Selection{% endblock %}
+{% block title %}Resume Screener Home{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
-        <h1>Find the Perfect Candidates with AI</h1>
-        <p class="lead">
-            Resume Screener Premium uses advanced artificial intelligence to analyze job descriptions and resumes, 
-            helping you identify the most qualified candidates quickly and efficiently.
-        </p>
-        <div class="mt-4">
-            <a href="{{ url_for('job_description') }}" class="btn btn-gold btn-lg">Start Premium Screening</a>
-        </div>
-        
-        <div class="card card-premium mt-5">
-            <div class="card-header">
-                <h3 class="card-title mb-0">How It Works</h3>
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Resume Screener Logo" class="mb-3" style="max-height: 100px;">
+        <h1>Welcome to the AI-Powered Resume Screener</h1>
+        <p class="lead">Efficiently screen and rank candidates based on your job requirements.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4 justify-content-center">
+        <!-- Resume Screening Card -->
+        <div class="col-md-6 col-lg-5">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title h4"><i class="fas fa-users-cog me-2"></i>Start Resume Screening</h2>
+                    <p class="card-text">Begin the process by providing a job description. The system will help you define evaluation criteria, upload resumes, and then rank candidates accordingly.</p>
+                    <a href="{{ url_for('job_description') }}" class="btn btn-primary mt-auto">
+                        <i class="fas fa-arrow-right me-2"></i>Start Screening Process
+                    </a>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-title">Enter Job Description</div>
-                        <div class="step-description">Enter your job description text</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-title">Set Priorities</div>
-                        <div class="step-description">Customize evaluation criteria importance</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-title">Upload Resumes</div>
-                        <div class="step-description">Upload candidate resumes for evaluation</div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-title">Review Results</div>
-                        <div class="step-description">Get detailed candidate rankings and analysis</div>
-                    </div>
+        </div>
+
+        <!-- 1-Pager Creator Card -->
+        <div class="col-md-6 col-lg-5">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="card-title h4"><i class="fas fa-file-word me-2"></i>Create 1-Pager Resume</h2>
+                    <p class="card-text">Upload a resume to generate an anonymized 1-pager Word document. This tool helps remove personal identifiable information (PII).</p>
+                    <a href="{{ url_for('one_pager_creator') }}" class="btn btn-gold mt-auto">
+                        <i class="fas fa-file-export me-2"></i>Generate 1-Pager
+                    </a>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card premium-card">
-            <div class="card-body">
-                <h3>Premium Features</h3>
-                <div class="row mt-4">
-                    <div class="col-md-6">
-                        <div class="premium-feature">
-                            <h4>AI-Powered Analysis</h4>
-                            <p>Advanced algorithms analyze job requirements with precision</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="premium-feature">
-                            <h4>Custom Criteria</h4>
-                            <p>Tailor evaluation criteria to your specific needs</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="premium-feature">
-                            <h4>Detailed Scoring</h4>
-                            <p>Comprehensive candidate scoring and ranking</p>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="premium-feature">
-                            <h4>Multiple Formats</h4>
-                            <p>Support for PDF, DOCX, and TXT files</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <h3 class="mt-5">Benefits</h3>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card mb-3 shadow">
-                            <div class="card-body">
-                                <h4>Save 75% Time</h4>
-                                <p>Reduce resume screening time dramatically</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card mb-3 shadow">
-                            <div class="card-body">
-                                <h4>Eliminate Bias</h4>
-                                <p>Objective evaluation based on job requirements</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card mb-3 shadow">
-                            <div class="card-body">
-                                <h4>Find Better Matches</h4>
-                                <p>Identify candidates who truly fit your needs</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card mb-3 shadow">
-                            <div class="card-body">
-                                <h4>Streamlined Process</h4>
-                                <p>Standardized evaluation workflow</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+    <div class="mt-5 p-4 bg-light rounded">
+        <h4>How It Works:</h4>
+        <ol>
+            <li><strong>Job Description:</strong> Provide the job description for the role you're hiring for.</li>
+            <li><strong>Set Criteria:</strong> The AI will suggest key evaluation criteria. Review, customize, and set priorities for each.</li>
+            <li><strong>Upload Resumes:</strong> Upload candidate resumes in PDF, DOCX, DOC, or TXT format.</li>
+            <li><strong>Get Results:</strong> View a ranked list of candidates with scores and justifications for each criterion. Download detailed reports.</li>
+        </ol>
     </div>
 </div>
 {% endblock %}

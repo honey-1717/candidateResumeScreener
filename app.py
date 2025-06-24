@@ -25,12 +25,13 @@ app.secret_key = SECRET_KEY
 create_directories([
     os.path.join(UPLOAD_FOLDER, 'job_descriptions'),
     os.path.join(UPLOAD_FOLDER, 'resumes'),
-    os.path.join(UPLOAD_FOLDER, 'results')
+    os.path.join(UPLOAD_FOLDER, 'results'),
+    os.path.join(UPLOAD_FOLDER, 'one_pager_temp') # For temporary 1-pager uploads
 ])
 
 # Initialize services
 job_analyzer = JobAnalyzer(GOOGLE_API_KEY)
-resume_processor = ResumeProcessor()
+resume_processor = ResumeProcessor() # resume_processor instance will be used for 1-pager
 candidate_evaluator = CandidateEvaluator(GOOGLE_API_KEY)
 
 # Session data storage (in-memory for demo purposes)
@@ -189,15 +190,8 @@ def set_criteria():
     
     return render_template('criteria.html', criteria=criteria, session_id=session_id)
 
-UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
-session_storage = {}  # Your session data storage (assumed global)
-
-# Assuming resume_processor and candidate_evaluator are already defined and imported
-
-def allowed_file(filename, allowed_extensions):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
+# UPLOAD_FOLDER and ALLOWED_EXTENSIONS are now taken from config.py at the top
+# session_storage is already defined globally
 
 @app.route('/upload_resumes', methods=['GET', 'POST'])
 def upload_resumes():
@@ -219,7 +213,6 @@ def upload_resumes():
         return redirect(url_for('set_criteria', session_id=session_id))
 
     if request.method == 'POST':
-        # Check for resume files
         if 'resumes' not in request.files:
             flash('No resume files provided', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
@@ -229,13 +222,12 @@ def upload_resumes():
             flash('No resume files selected', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
 
-        # Create directories
-        session_dir = os.path.join(UPLOAD_FOLDER, session_id)
+        session_dir = os.path.join(app.config['UPLOAD_FOLDER'], session_id)
         resume_dir = os.path.join(session_dir, 'resumes')
         os.makedirs(resume_dir, exist_ok=True)
 
-        # Save valid resumes
         resume_paths = []
+        # Use ALLOWED_EXTENSIONS from config for consistency
         for resume_file in resume_files:
             if resume_file and allowed_file(resume_file.filename, ALLOWED_EXTENSIONS):
                 filename = secure_filename(resume_file.filename)
@@ -244,22 +236,19 @@ def upload_resumes():
                 resume_paths.append(path)
 
         if not resume_paths:
-            flash('No valid resume files uploaded', 'danger')
+            flash('No valid resume files uploaded. Allowed types: PDF, DOC, DOCX, TXT.', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
 
         session_data['resume_paths'] = resume_paths
-
-        # Extract job description & evaluation criteria
         job_description = session_data['job_description']
         selected_criteria = session_data['selected_criteria']
         priorities = session_data['priorities']
 
-        # Process resumes
         processed_resumes = {}
         for resume_path in resume_paths:
             candidate_name = os.path.basename(resume_path).split('.')[0]
             resume_text = resume_processor.extract_text(resume_path)
-            if not resume_text.strip():
+            if not resume_text.strip() or resume_text.startswith("Error extracting"):
                 flash(f'{candidate_name} resume is empty or unreadable.', 'warning')
                 continue
             processed_resumes[candidate_name] = resume_text
@@ -268,7 +257,6 @@ def upload_resumes():
             flash('No readable resumes processed.', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
 
-        # Evaluate
         try:
             results = candidate_evaluator.evaluate_candidates(
                 job_description,
@@ -276,39 +264,30 @@ def upload_resumes():
                 priorities,
                 processed_resumes
             )
-
             session_data['results'] = results
-
-            # Save results
-            results_dir = os.path.join(UPLOAD_FOLDER, 'results', session_id)
+            results_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'results', session_id)
             os.makedirs(results_dir, exist_ok=True)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             output_file = os.path.join(results_dir, f'evaluation_results_{timestamp}.csv')
-
             sorted_results = sorted(
                 [(candidate, data) for candidate, data in results.items()],
                 key=lambda x: x[1]['overall_score'],
                 reverse=True
             )
-
             save_results_to_csv(sorted_results, priorities, output_file)
             session_data['results_file'] = output_file
 
-            # AJAX response support
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'status': 'success',
                     'session_id': session_id,
                     'redirect': url_for('show_results', session_id=session_id)
                 })
-
             return redirect(url_for('show_results', session_id=session_id))
-
         except Exception as e:
             flash(f'Error evaluating candidates: {str(e)}', 'danger')
             return redirect(url_for('upload_resumes', session_id=session_id))
 
-    # Render upload page (GET)
     return render_template(
         'upload_resumes.html',
         session_id=session_id,
@@ -335,19 +314,15 @@ def show_results():
     priorities = session_data.get('priorities', {})
     criteria = session_data.get('selected_criteria', [])
     
-    # Sort candidates by overall score
     sorted_results = sorted(
         [(candidate, data) for candidate, data in results.items()],
         key=lambda x: x[1]['overall_score'],
         reverse=True
     )
     
-    # Ensure justifications are available for all criteria
     for candidate, data in sorted_results:
         if 'justifications' not in data:
             data['justifications'] = {}
-        
-        # Ensure all criteria have justifications
         for criterion in criteria:
             if criterion not in data['justifications']:
                 data['justifications'][criterion] = "No specific justification provided."
@@ -365,104 +340,58 @@ def show_results():
 def download_results():
     """Download basic results as CSV"""
     session_id = request.args.get('session_id')
-    
-    if not session_id or session_id not in session_storage:
+    if not session_id or session_id not in session_storage or 'results_file' not in session_storage[session_id]:
         flash('No results available to download', 'warning')
         return redirect(url_for('index'))
     
-    session_data = session_storage[session_id]
-    
-    if 'results_file' not in session_data:
-        flash('No results available to download', 'warning')
-        return redirect(url_for('index'))
-    
-    results_file = session_data['results_file']
+    results_file = session_storage[session_id]['results_file']
     if not os.path.exists(results_file):
         flash('Results file not found', 'warning')
         return redirect(url_for('index'))
     
-    return send_file(
-        results_file,
-        as_attachment=True,
-        download_name='resume_evaluation_results.csv',
-        mimetype='text/csv'
-    )
+    return send_file(results_file, as_attachment=True, download_name='resume_evaluation_results.csv', mimetype='text/csv')
 
 @app.route('/download_detailed_csv')
 def download_detailed_csv():
     """Download detailed results as CSV including justifications"""
     session_id = request.args.get('session_id')
-    
-    if not session_id or session_id not in session_storage:
+    if not session_id or session_id not in session_storage or 'results' not in session_storage[session_id]:
         flash('No results available to download', 'warning')
         return redirect(url_for('index'))
     
     session_data = session_storage[session_id]
-    
-    if 'results' not in session_data:
-        flash('No results available to download', 'warning')
-        return redirect(url_for('index'))
-    
     results = session_data['results']
     priorities = session_data.get('priorities', {})
     criteria = session_data.get('selected_criteria', [])
     
-    # Sort candidates by overall score
-    sorted_results = sorted(
-        [(candidate, data) for candidate, data in results.items()],
-        key=lambda x: x[1]['overall_score'],
-        reverse=True
-    )
+    sorted_results = sorted([(c, d) for c, d in results.items()], key=lambda x: x[1]['overall_score'], reverse=True)
     
-    # Create CSV in memory
     output = io.StringIO()
     writer = csv.writer(output)
-    
-    # Write header row
-    header = ['Candidate', 'Overall Score (%)']
-    for criterion in criteria:
-        header.append(f"{criterion} (Score)")
-        header.append(f"{criterion} (Justification)")
+    header = ['Candidate', 'Overall Score (%)'] + [f"{cr} (Score)" for cr in criteria] + [f"{cr} (Justification)" for cr in criteria]
     writer.writerow(header)
     
-    # Write data rows
     for candidate, data in sorted_results:
-        row = [
-            candidate,
-            f"{data['overall_score']:.2f}"
-        ]
-        
-        for criterion in criteria:
-            score = data['criteria_scores'].get(criterion, 0)
-            justification = data['justifications'].get(criterion, "No justification provided.")
-            row.append(score)
-            row.append(justification)
-        
+        row = [candidate, f"{data['overall_score']:.2f}"]
+        for cr in criteria: row.append(data['criteria_scores'].get(cr, 0))
+        for cr in criteria: row.append(data['justifications'].get(cr, "No justification provided."))
         writer.writerow(row)
-    
-    # Create response
+        
     output.seek(0)
     response = make_response(output.getvalue())
     response.headers["Content-Disposition"] = "attachment; filename=detailed_evaluation_results.csv"
     response.headers["Content-type"] = "text/csv"
-    
     return response
 
 @app.route('/download_detailed_excel')
 def download_detailed_excel():
     """Download comprehensive results as Excel file including all ratings and justifications"""
     session_id = request.args.get('session_id')
-    
-    if not session_id or session_id not in session_storage:
+    if not session_id or session_id not in session_storage or 'results' not in session_storage[session_id]:
         flash('No results available to download', 'warning')
         return redirect(url_for('index'))
     
     session_data = session_storage[session_id]
-    
-    if 'results' not in session_data:
-        flash('No results available to download', 'warning')
-        return redirect(url_for('index'))
-    
     try:
         import pandas as pd
         from io import BytesIO
@@ -472,206 +401,88 @@ def download_detailed_excel():
         criteria = session_data.get('selected_criteria', [])
         job_description = session_data.get('job_description', 'Not available')
         
-        # Sort candidates by overall score
-        sorted_results = sorted(
-            [(candidate, data) for candidate, data in results.items()],
-            key=lambda x: x[1]['overall_score'],
-            reverse=True
-        )
+        sorted_results = sorted([(c, d) for c, d in results.items()], key=lambda x: x[1]['overall_score'], reverse=True)
         
-        # Create a DataFrame for the summary sheet
-        summary_data = {
-            'Candidate': [],
-            'Overall Score (%)': [],
-            'Rank': []
-        }
-        
-        # Add columns for each criterion
+        summary_data = {'Candidate': [], 'Overall Score (%)': [], 'Rank': []}
         for criterion in criteria:
             summary_data[f"{criterion} (Score)"] = []
             summary_data[f"{criterion} (Priority)"] = []
         
-        # Fill the summary data
         for i, (candidate, data) in enumerate(sorted_results):
             summary_data['Candidate'].append(candidate)
             summary_data['Overall Score (%)'].append(f"{data['overall_score']:.2f}")
             summary_data['Rank'].append(i + 1)
-            
             for criterion in criteria:
-                score = data['criteria_scores'].get(criterion, 0)
-                priority = priorities.get(criterion, 5)
-                summary_data[f"{criterion} (Score)"].append(score)
-                summary_data[f"{criterion} (Priority)"].append(priority)
+                summary_data[f"{criterion} (Score)"].append(data['criteria_scores'].get(criterion, 0))
+                summary_data[f"{criterion} (Priority)"].append(priorities.get(criterion, 5))
         
-        # Create a DataFrame for the detailed sheet with justifications
-        detailed_data = {
-            'Candidate': [],
-            'Criterion': [],
-            'Score': [],
-            'Priority': [],
-            'Justification': []
-        }
-        
-        # Fill the detailed data
+        detailed_data = {'Candidate': [], 'Criterion': [], 'Score': [], 'Priority': [], 'Justification': []}
         for candidate, data in sorted_results:
             for criterion in criteria:
-                score = data['criteria_scores'].get(criterion, 0)
-                priority = priorities.get(criterion, 5)
-                justification = data['justifications'].get(criterion, "No justification provided.")
-                
                 detailed_data['Candidate'].append(candidate)
                 detailed_data['Criterion'].append(criterion)
-                detailed_data['Score'].append(score)
-                detailed_data['Priority'].append(priority)
-                detailed_data['Justification'].append(justification)
+                detailed_data['Score'].append(data['criteria_scores'].get(criterion, 0))
+                detailed_data['Priority'].append(priorities.get(criterion, 5))
+                detailed_data['Justification'].append(data['justifications'].get(criterion, "No justification provided."))
         
-        # Create a BytesIO object to save the Excel file
-        output = BytesIO()
-        
-        # Create a Pandas Excel writer using the BytesIO object
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            # Convert the dataframes to an XlsxWriter Excel object
+        output_excel = BytesIO()
+        with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
             summary_df = pd.DataFrame(summary_data)
             detailed_df = pd.DataFrame(detailed_data)
-            
-            # Write each dataframe to a different worksheet
-            summary_df.to_excel(writer, sheet_name='Summary', index=False)
+            summary_df.to_excel(writer, sheet_name='Summary', index=False, startrow=4) # Start data later for title
             detailed_df.to_excel(writer, sheet_name='Detailed Justifications', index=False)
             
-            # Get the xlsxwriter workbook and worksheet objects
             workbook = writer.book
             summary_sheet = writer.sheets['Summary']
             detailed_sheet = writer.sheets['Detailed Justifications']
             
-            # Add a format for the header cells
-            header_format = workbook.add_format({
-                'bold': True,
-                'text_wrap': True,
-                'valign': 'top',
-                'fg_color': '#D7E4BC',
-                'border': 1
-            })
+            header_format = workbook.add_format({'bold': True, 'text_wrap': True, 'valign': 'top', 'fg_color': '#D7E4BC', 'border': 1})
+            for col_num, value in enumerate(summary_df.columns.values): summary_sheet.write(4, col_num, value, header_format) # Headers at row 4
+            for col_num, value in enumerate(detailed_df.columns.values): detailed_sheet.write(0, col_num, value, header_format)
             
-            # Write the column headers with the header format
-            for col_num, value in enumerate(summary_df.columns.values):
-                summary_sheet.write(0, col_num, value, header_format)
-            
-            for col_num, value in enumerate(detailed_df.columns.values):
-                detailed_sheet.write(0, col_num, value, header_format)
-            
-            # Set column widths
-            summary_sheet.set_column(0, 0, 20)  # Candidate column
-            summary_sheet.set_column(1, 1, 15)  # Overall Score column
-            summary_sheet.set_column(2, 2, 10)  # Rank column
-            summary_sheet.set_column(3, len(summary_df.columns), 15)  # Other columns
-            
-            detailed_sheet.set_column(0, 0, 20)  # Candidate column
-            detailed_sheet.set_column(1, 1, 30)  # Criterion column
-            detailed_sheet.set_column(2, 3, 10)  # Score and Priority columns
-            detailed_sheet.set_column(4, 4, 50)  # Justification column
-            
-            # Add a format for the justification cells
-            wrap_format = workbook.add_format({'text_wrap': True})
-            detailed_sheet.set_column(4, 4, 50, wrap_format)
-            
-            # Add conditional formatting for scores
-            # Green for high scores (8-10)
-            high_score_format = workbook.add_format({'bg_color': '#C6EFCE', 'font_color': '#006100'})
-            # Yellow for medium scores (6-7)
-            medium_score_format = workbook.add_format({'bg_color': '#FFEB9C', 'font_color': '#9C5700'})
-            # Red for low scores (0-5)
-            low_score_format = workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
-            
-            # Apply conditional formatting to score columns in summary sheet
-            for i, col in enumerate(summary_df.columns):
-                if '(Score)' in col:
-                    col_letter = chr(65 + i)  # Convert column index to letter (A, B, C, etc.)
-                    summary_sheet.conditional_format(f'{col_letter}2:{col_letter}{len(summary_df)+1}', {
-                        'type': 'cell',
-                        'criteria': '>=',
-                        'value': 8,
-                        'format': high_score_format
-                    })
-                    summary_sheet.conditional_format(f'{col_letter}2:{col_letter}{len(summary_df)+1}', {
-                        'type': 'cell',
-                        'criteria': 'between',
-                        'minimum': 6,
-                        'maximum': 7.9,
-                        'format': medium_score_format
-                    })
-                    summary_sheet.conditional_format(f'{col_letter}2:{col_letter}{len(summary_df)+1}', {
-                        'type': 'cell',
-                        'criteria': '<',
-                        'value': 6,
-                        'format': low_score_format
-                    })
-            
-            # Apply conditional formatting to score column in detailed sheet
-            detailed_sheet.conditional_format('C2:C' + str(len(detailed_df) + 1), {
-                'type': 'cell',
-                'criteria': '>=',
-                'value': 8,
-                'format': high_score_format
-            })
-            detailed_sheet.conditional_format('C2:C' + str(len(detailed_df) + 1), {
-                'type': 'cell',
-                'criteria': 'between',
-                'minimum': 6,
-                'maximum': 7.9,
-                'format': medium_score_format
-            })
-            detailed_sheet.conditional_format('C2:C' + str(len(detailed_df) + 1), {
-                'type': 'cell',
-                'criteria': '<',
-                'value': 6,
-                'format': low_score_format
-            })
-            
-            # Add a job description sheet
-            job_desc_df = pd.DataFrame({
-                'Job Description': [job_description]
-            })
-            job_desc_df.to_excel(writer, sheet_name='Job Description', index=False)
-            job_desc_sheet = writer.sheets['Job Description']
-            job_desc_sheet.set_column(0, 0, 100, wrap_format)
-            
-            # Add a criteria priorities sheet
-            criteria_data = {
-                'Criterion': list(priorities.keys()),
-                'Priority (1-10)': list(priorities.values())
+            summary_sheet.set_column(0, 0, 20); summary_sheet.set_column(1, 1, 15); summary_sheet.set_column(2, 2, 10)
+            summary_sheet.set_column(3, len(summary_df.columns), 15)
+            detailed_sheet.set_column(0, 0, 20); detailed_sheet.set_column(1, 1, 30); detailed_sheet.set_column(2, 3, 10)
+            detailed_sheet.set_column(4, 4, 50, workbook.add_format({'text_wrap': True}))
+
+            # Conditional formatting (simplified for brevity, apply as in original)
+            score_formats = {
+                'high': workbook.add_format({'bg_color': '#C6EFCE', 'font_color': '#006100'}),
+                'medium': workbook.add_format({'bg_color': '#FFEB9C', 'font_color': '#9C5700'}),
+                'low': workbook.add_format({'bg_color': '#FFC7CE', 'font_color': '#9C0006'})
             }
-            criteria_df = pd.DataFrame(criteria_data)
-            criteria_df.to_excel(writer, sheet_name='Criteria Priorities', index=False)
-            criteria_sheet = writer.sheets['Criteria Priorities']
-            criteria_sheet.set_column(0, 0, 40)
-            criteria_sheet.set_column(1, 1, 15)
+            # Apply to summary sheet score columns (starting from data row 5)
+            for i, col_name in enumerate(summary_df.columns):
+                if "(Score)" in col_name:
+                    col_letter = chr(65 + i)
+                    data_end_row = 4 + len(summary_df)
+                    summary_sheet.conditional_format(f'{col_letter}6:{col_letter}{data_end_row+1}', {'type': 'cell', 'criteria': '>=', 'value': 8, 'format': score_formats['high']})
+                    summary_sheet.conditional_format(f'{col_letter}6:{col_letter}{data_end_row+1}', {'type': 'cell', 'criteria': 'between', 'minimum': 6, 'maximum': 7.99, 'format': score_formats['medium']})
+                    summary_sheet.conditional_format(f'{col_letter}6:{col_letter}{data_end_row+1}', {'type': 'cell', 'criteria': '<', 'value': 6, 'format': score_formats['low']})
+            # Apply to detailed sheet score column C (starting from data row 2)
+            detailed_sheet.conditional_format(f'C2:C{len(detailed_df)+1}', {'type': 'cell', 'criteria': '>=', 'value': 8, 'format': score_formats['high']})
+            detailed_sheet.conditional_format(f'C2:C{len(detailed_df)+1}', {'type': 'cell', 'criteria': 'between', 'minimum': 6, 'maximum': 7.99, 'format': score_formats['medium']})
+            detailed_sheet.conditional_format(f'C2:C{len(detailed_df)+1}', {'type': 'cell', 'criteria': '<', 'value': 6, 'format': score_formats['low']})
+
+
+            pd.DataFrame({'Job Description': [job_description]}).to_excel(writer, sheet_name='Job Description', index=False)
+            writer.sheets['Job Description'].set_column(0, 0, 100, workbook.add_format({'text_wrap': True}))
+            pd.DataFrame({'Criterion': list(priorities.keys()), 'Priority (1-10)': list(priorities.values())}).to_excel(writer, sheet_name='Criteria Priorities', index=False)
+            writer.sheets['Criteria Priorities'].set_column(0, 0, 40); writer.sheets['Criteria Priorities'].set_column(1, 1, 15)
             
-            # Add a title and info to the summary sheet
-            summary_sheet.merge_range('A1:C1', 'Resume Evaluation Results', workbook.add_format({
-                'bold': True, 'font_size': 14, 'align': 'center', 'valign': 'vcenter'
-            }))
+            summary_sheet.merge_range('A1:C1', 'Resume Evaluation Results', workbook.add_format({'bold': True, 'font_size': 14, 'align': 'center'}))
             summary_sheet.write(1, 0, f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
             summary_sheet.write(2, 0, f'Total Candidates: {len(sorted_results)}')
             summary_sheet.write(3, 0, f'Total Criteria: {len(criteria)}')
-            
-            # Adjust the starting row for the actual data
-            for i, row in enumerate(summary_df.values):
-                for j, val in enumerate(row):
-                    summary_sheet.write(i + 4, j, val)
-        
-        # Set up the response
-        output.seek(0)
-        
-        # Create response
-        response = make_response(output.getvalue())
+
+        output_excel.seek(0)
+        response = make_response(output_excel.getvalue())
         response.headers["Content-Disposition"] = "attachment; filename=detailed_resume_evaluation.xlsx"
         response.headers["Content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        
         return response
         
     except ImportError:
-        # If pandas or xlsxwriter is not available, fall back to CSV
-        flash('Excel export requires pandas and xlsxwriter packages. Falling back to CSV export.', 'warning')
+        flash('Excel export requires pandas and xlsxwriter. Falling back to CSV.', 'warning')
         return redirect(url_for('download_detailed_csv', session_id=session_id))
     except Exception as e:
         flash(f'Error generating Excel file: {str(e)}', 'danger')
@@ -684,52 +495,83 @@ def api_session():
         session_id = request.args.get('session_id')
         if not session_id or session_id not in session_storage:
             return jsonify({'status': 'error', 'message': 'Session not found'})
-        
-        return jsonify({
-            'status': 'success',
-            'session_id': session_id,
-            'data': session_storage[session_id]
-        })
+        return jsonify({'status': 'success', 'session_id': session_id, 'data': session_storage[session_id]})
     
     elif request.method == 'POST':
-        if not request.is_json:
-            return jsonify({'status': 'error', 'message': 'Invalid request format'})
-        
+        if not request.is_json: return jsonify({'status': 'error', 'message': 'Invalid request format'})
         data = request.get_json()
-        session_id = data.get('session_id')
-        
-        if not session_id:
-            # Generate a new session ID if not provided
-            session_id = str(uuid.uuid4())
-            session_storage[session_id] = {}
-        elif session_id not in session_storage:
-            session_storage[session_id] = {}
-        
-        # Update session data
+        session_id = data.get('session_id', str(uuid.uuid4()))
+        if session_id not in session_storage: session_storage[session_id] = {}
         for key, value in data.items():
-            if key != 'session_id':
-                session_storage[session_id][key] = value
+            if key != 'session_id': session_storage[session_id][key] = value
+        return jsonify({'status': 'success', 'session_id': session_id})
+
+# New route for 1-pager resume creator
+@app.route('/one-pager', methods=['GET', 'POST'])
+def one_pager_creator():
+    if request.method == 'POST':
+        if 'resume_file' not in request.files:
+            flash('No resume file provided', 'danger')
+            return redirect(request.url)
         
-        return jsonify({
-            'status': 'success',
-            'session_id': session_id
-        })
+        file = request.files['resume_file']
+        if file.filename == '':
+            flash('No resume file selected', 'danger')
+            return redirect(request.url)
+
+        # Use ALLOWED_EXTENSIONS from config.py
+        if file and allowed_file(file.filename, ALLOWED_EXTENSIONS):
+            temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'one_pager_temp')
+            # os.makedirs(temp_dir, exist_ok=True) # Already created at app start
+
+            filename = secure_filename(file.filename)
+            temp_file_path = os.path.join(temp_dir, filename)
+            
+            try:
+                file.save(temp_file_path)
+                docx_stream = resume_processor.generate_one_pager_docx(temp_file_path)
+                
+                return send_file(
+                    docx_stream,
+                    as_attachment=True,
+                    download_name='anonymized_one_pager.docx',
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+            except ValueError as e:
+                flash(str(e), 'danger')
+            except Exception as e:
+                app.logger.error(f"Error in one_pager_creator: {e}", exc_info=True)
+                flash(f'An error occurred while generating the 1-pager: {str(e)}', 'danger')
+            finally:
+                if os.path.exists(temp_file_path):
+                    os.remove(temp_file_path) # Clean up the temporary file
+            return redirect(request.url)
+        else:
+            flash(f'Invalid file type. Allowed types are: {", ".join(ALLOWED_EXTENSIONS)}.', 'danger')
+            return redirect(request.url)
+            
+    return render_template('one_pager_upload.html')
+
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    """Handle file too large error"""
-    flash('File too large. Maximum file size is 16MB.', 'danger')
-    return redirect(url_for('upload_resumes')), 413
+    flash('File too large. Maximum file size is 50MB.', 'danger') # Updated to 50MB as per MAX_CONTENT_LENGTH
+    # Redirect to previous page or a specific upload page
+    if 'upload_resumes' in request.referrer:
+        return redirect(url_for('upload_resumes')), 413
+    elif 'one-pager' in request.referrer:
+        return redirect(url_for('one_pager_creator')), 413
+    return redirect(url_for('index')), 413
+
 
 @app.errorhandler(500)
 def internal_server_error(error):
-    """Handle internal server error"""
-    flash('An error occurred while processing your request. Please try again.', 'danger')
+    app.logger.error(f"Server Error: {error}", exc_info=True)
+    flash('An internal server error occurred. Please try again later.', 'danger')
     return render_template('index.html'), 500
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
-    """Serve static files"""
     return send_file(os.path.join(app.root_path, 'static', filename))
 
 if __name__ == '__main__':

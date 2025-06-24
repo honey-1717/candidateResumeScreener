@@ -404,3 +404,4 @@ class CandidateEvaluator:
         except Exception as e:
             print(f"Error generating feedback: {str(e)}")
             return "Unable to generate feedback at this time."
+                    

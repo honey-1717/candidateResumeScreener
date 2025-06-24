@@ -1,0 +1,56 @@
+
+We are seeking a talented and motivated AI Developer to join our team. In this role, you 
+will be responsible for designing, building, deploying, and managing AI agents that 
+operate on client data. You will work closely with clients and internal teams to ensure 
+the AI agents are optimized, reliable, and deliver measurable value. This is a hands-on 
+role that requires a strong technical background, problem-solving skills, and a passion 
+for AI innovation.
+Key Responsibilities
+• Build AI agents tailored to client requirements using state-of-the-art AI/ML 
+techniques.
+• Develop and fine-tune machine learning models, natural language processing 
+(NLP) systems, and other AI components.
+• Integrate AI agents with client systems and data pipelines.
+• Deploy AI agents into production environments, ensuring scalability and 
+reliability.
+• Implement monitoring systems to track agent performance, detect failures, and 
+ensure uptime
+• Proactively manage AI agents to address failures, performance bottlenecks, and 
+data drift.
+• Continuously optimize AI models and systems to improve accuracy, efficiency, 
+and client outcomes.
+• Collaborate with clients to understand evolving needs and update AI agents 
+accordingly.
+• Work closely with cross-functional teams, including data scientists, engineers, 
+and product managers.
+• Communicate technical concepts and solutions to non-technical stakeholders.
+• Provide regular updates and reports on agent performance and improvements.
+• Stay up-to-date with the latest advancements in AI/ML technologies and tools.
+• Experiment with new approaches to enhance the capabilities of AI agents.
+Key Skills
+• Technical Expertise:
+o Proficiency in programming languages such as Python, Java, or C++.
+o Strong experience with AI/ML frameworks like TensorFlow, PyTorch, or 
+Hugging Face.
+o Familiarity with NLP, reinforcement learning, and other AI techniques.
+o Experience with cloud platforms (e.g., AWS, Azure, GCP) and 
+containerization tools (e.g., Docker, Kubernetes).
+• Data Handling and Integration:
+o Expertise in working with structured and unstructured data.
+o Experience with data preprocessing, feature engineering, and data 
+pipeline development.
+o Knowledge of APIs, databases, and ETL processes.
+• Deployment and Monitoring:
+o Hands-on experience deploying AI models into production environments.
+o Familiarity with monitoring tools (e.g., Prometheus, Grafana) and logging 
+frameworks.
+o Understanding of CI/CD pipelines and DevOps practices.
+• Problem-Solving and Analytical Skills:
+o Strong ability to troubleshoot and resolve technical issues.
+o Analytical mindset with a focus on delivering measurable results.
+Nice-to-Have Skills:
+• Experience working with LLMs (Large Language Models) and fine-tuning AI 
+models for specific applications.
+• Knowledge of reinforcement learning and AI agent-based automation.
+• Experience with MLOps pipelines for CI/CD automation in AI workflows.
+• Understanding of ethical AI principles and responsible AI deployment practices

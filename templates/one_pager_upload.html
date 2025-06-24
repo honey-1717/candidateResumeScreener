@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Create 1-Pager Resume{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">Create Anonymized 1-Pager Resume</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Upload a resume (PDF, DOC, DOCX, TXT) to generate an anonymized 1-pager Word document.</p>
+                    <p>This tool will attempt to remove personal information such as full name (keeping first name), mobile numbers, email addresses, and physical addresses.</p>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('one_pager_creator') }}">
+                        <div class="mb-3">
+                            <label for="resume_file" class="form-label"><strong>Upload Resume File:</strong></label>
+                            <input type="file" class="form-control" id="resume_file" name="resume_file" accept=".pdf,.doc,.docx,.txt" required>
+                            <div class="form-text">
+                                Supported formats: PDF, DOC, DOCX, TXT. Max file size: 50MB.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-gold btn-lg w-100">
+                            <i class="fas fa-file-word me-2"></i>Generate 1-Pager
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Note: Anonymization is based on common patterns and may not be 100% perfect. Please review the generated document.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
